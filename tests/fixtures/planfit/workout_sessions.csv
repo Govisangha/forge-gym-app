@@ -1,0 +1,9 @@
+﻿"workout_id","date","routine_name","workout_name","started_at_utc","done_at_utc","duration_min","elapsed_min","calories_kcal","is_home","memo"
+"legs-a","2025-11-08","Routine A","Gym Workout Routine","2025-11-08 07:00:00","2025-11-08 08:00:00","50","60","350","false","A memo, with a comma
+and a new line"
+"legs-copy","2025-11-08","Routine A","","2025-11-08 07:00:00","2025-11-08 08:00:00","50","60","350","false","Duplicate export row"
+"back-a","2026-09-07","Routine C","My Upper Back","2026-09-07T18:00:00Z","2026-09-07T18:45:00Z","40","45","200","false","Keep this actual name"
+"walk-a","2026-09-08","Walking","","2026-09-08T09:00:00Z","2026-09-08T09:25:00Z","25","25","100","false","Morning walk"
+"walk-copy","2026-09-08","Walking","Workout","2026-09-08T09:00:00Z","2026-09-08T09:25:00Z","25","25","100","false","Same walk, duplicate export"
+"walk-later","2026-09-08","Walking","","2026-09-08T17:00:00Z","2026-09-08T17:50:00Z","50","50","170","false","Another valid walk"
+"bodyweight","2026-10-20","Bodyweight","","","","","","0","false","No invented weight"

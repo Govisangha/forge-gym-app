@@ -1,0 +1,1 @@
+Synthetic Planfit-shaped test data. These files contain no user export or real training history.
