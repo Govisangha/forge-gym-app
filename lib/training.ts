@@ -6,9 +6,10 @@ export type Template={id:string;name:string;color:string;description:string;exer
 export type Settings={id:string;anchor:string;weeks:number[][];rotation:string[];cursor:number;nextDue:string;weightUnit:'kg'|'stone';armGoal:number;notifications:boolean};
 export type Priority={id:string;label:string;exerciseIds:string[];muscles:string[];target:number};
 export type Programme={id:string;templates:Template[];priorities:Priority[]};
-export type WorkoutExercise={id:string;exerciseId:string;name:string;muscles:string[];range:[number,number];requiredSets:number;rest:number;sets:SetLog[];note:string;feeling:'Fine'|'Discomfort'|'Pain';painNote:string;importMetadata?:{source:'planfit';exerciseEntryId:string;recordType:string;sourceOrder:number;row:Record<string,string>;incompleteSets:Record<string,string>[]}};
+export type SetPreset=Pick<SetLog,'weight'|'reps'|'type'|'durationSec'>;
+export type WorkoutExercise={id:string;exerciseId:string;name:string;muscles:string[];range:[number,number];requiredSets:number;rest:number;sets:SetLog[];plannedSets?:SetPreset[];note:string;feeling:'Fine'|'Discomfort'|'Pain';painNote:string;importMetadata?:{source:'planfit';exerciseEntryId:string;recordType:string;sourceOrder:number;row:Record<string,string>;incompleteSets:Record<string,string>[]}};
 export type PB={id:string;exerciseId?:string;exerciseName:string;type:string;value:number;previous:number;detail:string;date:string};
-export type Session={id:string;name:string;templateId:string;color:string;mode:'normal'|'short'|'bonus'|'past'|'import';date:string;startedAt:string;finishedAt?:string;duration:number;exercises:WorkoutExercise[];note:string;bodyweight?:number;pbs:PB[];volume:number;scheduledFor?:string;restEnd?:number;restTotal?:number;selectedExercise?:number;source?:string;importMetadata?:{source:'planfit';workoutId:string;workoutIds:string[];batchId:string;row:Record<string,string>;startedAtUTC:string|null;doneAtUTC:string|null;durationMin:number|null;elapsedMin:number|null;caloriesKcal:number|null;sourceOrder:number;fingerprint:string;nameOrigin:'source'|'unlabeled'|'confirmed-suggestion'|'user';suggestedName?:string};availableTime?:number;input?:{weight:string;reps:string;type:SetType;effort:string;note:string}};
+export type Session={id:string;name:string;templateId:string;color:string;mode:'normal'|'short'|'bonus'|'past'|'import';date:string;startedAt:string;finishedAt?:string;duration:number;exercises:WorkoutExercise[];note:string;bodyweight?:number;pbs:PB[];volume:number;scheduledFor?:string;restEnd?:number;restTotal?:number;selectedExercise?:number;source?:string;importMetadata?:{source:'planfit';workoutId:string;workoutIds:string[];batchId:string;row:Record<string,string>;startedAtUTC:string|null;doneAtUTC:string|null;durationMin:number|null;elapsedMin:number|null;caloriesKcal:number|null;sourceOrder:number;fingerprint:string;nameOrigin:'source'|'unlabeled'|'confirmed-suggestion'|'user';suggestedName?:string};availableTime?:number;copiedFromSessionId?:string;input?:{weight:string;reps:string;type:SetType;effort:string;note:string;durationSec?:string}};
 export type Weight={id:string;date:string;kg:number};
 export type Measurement={id:string;date:string;name:string;value:number;unit:string};
 export type Photo={id:string;date:string;category:string;dataUrl:string};
@@ -40,7 +41,7 @@ if(set.weight>max(x=>x.weight))add('Highest weight',set.weight,max(x=>x.weight),
 const same=baseline.filter(x=>x.weight===set.weight);const bestReps=Math.max(0,...same.map(x=>x.reps));if(set.reps>bestReps)add('Rep PB',set.reps,bestReps,detail);
 if(set.weight>0&&e1rm(set)>max(e1rm))add('Estimated 1RM',e1rm(set),max(e1rm),`${e1rm(set).toFixed(1)} kg estimated · ${detail}`);
 if(s.bodyweight&&set.weight>0){const previous=Math.max(0,...earlier.filter(x=>x.bodyweight).flatMap(x=>x.exercises.filter(y=>y.exerciseId===e.exerciseId).flatMap(y=>y.sets.filter(working).map(z=>e1rm(z)/x.bodyweight!))),...inSession.map(x=>e1rm(x)/s.bodyweight!));const relative=e1rm(set)/s.bodyweight;if(relative>previous)add('Relative strength',relative,previous,`${detail} at ${s.bodyweight} kg bodyweight`)}return out}
-export function finishSnapshot(draft:Session,history:Session[],duration?:number):Session{const s=structuredClone(draft);s.finishedAt=draft.mode==='import'&&draft.finishedAt?draft.finishedAt:new Date().toISOString();s.duration=duration??Math.max(1,Math.round((Date.now()-Date.parse(s.startedAt))/60000));s.volume=sessionVolume(s);delete s.restEnd;delete s.restTotal;delete s.input;
+export function finishSnapshot(draft:Session,history:Session[],duration?:number):Session{const s=structuredClone(draft);s.finishedAt=draft.mode==='import'&&draft.finishedAt?draft.finishedAt:new Date().toISOString();s.duration=duration??Math.max(1,Math.round((Date.now()-Date.parse(s.startedAt))/60000));s.volume=sessionVolume(s);delete s.restEnd;delete s.restTotal;delete s.input;s.exercises.forEach(e=>{delete e.plannedSets});
 const previous=previousSession(s,history);for(const e of s.exercises){const past=exposures(e.exerciseId,history,s.date);const best=Math.max(0,...past.map(x=>exerciseVolume(x.exercise)));const value=exerciseVolume(e);if(value>best)s.pbs.push({id:uid(),exerciseId:e.exerciseId,exerciseName:e.name,type:'Exercise volume',value,previous:best,detail:`${value.toLocaleString()} kg volume`,date:s.date})}
 const best=Math.max(0,...history.filter(x=>x.date<=s.date&&equivalentSessions(s,x)).map(x=>x.volume));if(s.volume>best)s.pbs.push({id:uid(),exerciseName:s.name,type:'Session volume',value:s.volume,previous:best,detail:`${s.volume.toLocaleString()} kg volume`,date:s.date});return JSON.parse(JSON.stringify(s)) as Session}
 export function recalculateRecords(s:Session,history:Session[]){const d=structuredClone(s);d.pbs=[];const original=d.exercises.map(e=>e.sets);d.exercises.forEach(e=>e.sets=[]);for(const [index,e] of d.exercises.entries()){const sets=original[index];for(const set of sets){d.pbs.push(...setRecords(d,e,set,history));e.sets.push(set)}}return finishSnapshot(d,history,s.duration)}
@@ -60,3 +61,33 @@ export const parseCSV=(text:string)=>parseCSVTable(text).rows;
 export function flattenJSON(raw:any):any[]{const list=Array.isArray(raw)?raw:raw.workouts??raw.sessions??raw.data??raw.rows;if(!Array.isArray(list))throw new Error('JSON must contain an array, or workouts / sessions / data / rows.');return list.flatMap(s=>{if(!Array.isArray(s.exercises))return [s];return s.exercises.flatMap((e:any)=>Array.isArray(e.sets)?e.sets.map((set:any,i:number)=>({date:s.date,workout:s.name??s.workoutName,session_id:s.id,duration:s.duration,bodyweight:s.bodyweight,exercise:e.name??e.exercise,set_number:i+1,...set})):[])})}
 export function normaliseImportDate(value:any,format:string){const s=String(value??'').trim();let iso='';if(/^\d{4}-\d{2}-\d{2}/.test(s))iso=s.slice(0,10);else {const m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);if(m){const d=format==='mdy'?m[2]:m[1],mo=format==='mdy'?m[1]:m[2];iso=`${m[3]}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`}}if(!iso||day(dateOf(iso))!==iso)throw new Error(`Unrecognised date: ${s}`);return iso}
 export const formatDate=(s:string,opts:Intl.DateTimeFormatOptions={day:'numeric',month:'short'})=>dateOf(s).toLocaleDateString('en-GB',opts);
+
+export type CopyWorkoutOptions={mode:'past'|'bonus'|'normal';date?:string;name?:string;templateId?:string;color?:string;duration?:number;expectedTemplateId?:string;scheduledFor?:string};
+export function copiedSetInput(exercise:WorkoutExercise):Session['input']|undefined{
+ const preset=exercise.plannedSets?.[exercise.sets.length];
+ if(!preset)return undefined;
+ return {weight:preset.weight==null?'':String(preset.weight),reps:preset.reps==null?'':String(preset.reps),type:preset.type,effort:'',note:'',...(preset.durationSec==null?{}:{durationSec:String(preset.durationSec)})};
+}
+export function copyWorkout(source:Session,options:CopyWorkoutOptions,history:Session[],weights:Weight[]):Session{
+ if(!source.finishedAt)throw new Error('Choose a completed workout to copy.');
+ const date=options.mode==='past'?(options.date??''):day();
+ normaliseImportDate(date,'dmy');
+ if(date>day())throw new Error('A past workout cannot be in the future.');
+ const name=(options.name??source.name).trim();if(!name)throw new Error('Enter a workout name.');
+ const templateId=options.templateId??source.templateId;
+ if(options.mode==='normal'&&(!options.expectedTemplateId||templateId!==options.expectedTemplateId))throw new Error('Only the next scheduled workout can complete the normal rotation.');
+ const startedAt=options.mode==='past'?date+'T12:00:00.000Z':new Date().toISOString();
+ const bodyweight=weights.filter(w=>w.date<=date).sort((a,b)=>b.date.localeCompare(a.date))[0]?.kg;
+ const exercises:WorkoutExercise[]=source.exercises.filter(e=>e.sets.some(set=>set.completed!==false)).map(e=>{
+  const completed=e.sets.filter(set=>set.completed!==false);
+  const presets=completed.map(set=>({weight:set.weight,reps:set.reps,type:set.type,...(set.durationSec==null?{}:{durationSec:set.durationSec})}));
+  return {id:uid(),exerciseId:e.exerciseId,name:e.name,muscles:[...e.muscles],range:[...e.range],requiredSets:completed.filter(working).length||completed.length,rest:e.rest,note:e.note,feeling:'Fine',painNote:'',sets:options.mode==='past'?completed.map(set=>({id:uid(),weight:set.weight,reps:set.reps,type:set.type,...(set.durationSec==null?{}:{durationSec:set.durationSec}),...(set.effort?{effort:set.effort}:{}),...(set.note?{note:set.note}:{}),timestamp:startedAt,completed:true})):[],...(options.mode==='past'?{}:{plannedSets:presets})};
+ });
+ if(!exercises.length)throw new Error('That workout has no completed sets to copy.');
+ const duration=options.mode==='past'?(options.duration??source.duration):0;
+ if(!Number.isFinite(duration)||duration<0)throw new Error('Enter a valid duration.');
+ const draft:Session={id:uid(),name,templateId,color:options.color??source.color,mode:options.mode,date,startedAt,duration,exercises,note:'',bodyweight,pbs:[],volume:0,selectedExercise:0,copiedFromSessionId:source.id,...(options.mode==='normal'?{scheduledFor:options.scheduledFor}:{} )};
+ if(options.mode==='past')for(const e of draft.exercises){const sets=e.sets;e.sets=[];for(const set of sets){draft.pbs.push(...setRecords(draft,e,set,history));e.sets.push(set)}}
+ draft.volume=sessionVolume(draft);
+ return draft;
+}
