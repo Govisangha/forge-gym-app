@@ -1,6 +1,6 @@
 export type SetType='Working'|'Warm-up'|'Drop set'|'Failure'|'Back-off';
 export type SetLog={id:string;weight:number|null;reps:number|null;type:SetType;effort?:string;note?:string;timestamp:string;number?:number|null;durationSec?:number|null;completed?:boolean;sourceType?:string;importMetadata?:{source:'planfit';row:Record<string,string>;sourceOrder:number}};
-export type Exercise={id:string;name:string;muscles:string[];secondary:string[];equipment:string;range:[number,number];rest:number;increment:number;notes:string;substitutions:string[];aliases?:string[]};
+export type Exercise={id:string;name:string;muscles:string[];secondary:string[];equipment:string;range:[number,number];rest:number;increment:number;notes:string;substitutions:string[];aliases?:string[];gymIds?:string[];brand?:string;tracking?:'reps'|'duration';equipmentSource?:{url:string;checkedOn:string;detail:string}};
 export type TemplateExercise={exerciseId:string;sets:number;range:[number,number];rest:number;priority:number};
 export type Template={id:string;name:string;color:string;description:string;exercises:TemplateExercise[]};
 export type Settings={id:string;anchor:string;weeks:number[][];rotation:string[];cursor:number;nextDue:string;weightUnit:'kg'|'stone';armGoal:number;notifications:boolean};
